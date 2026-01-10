@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet.photon.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title>WebGIS Kesesuaian Lahan Permukiman Kabupaten Sidoarjo
+</title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet.photon.js"></script>
+        <script src="data/Jalan_Sidoarjo_1.js"></script>
+        <script src="data/Sidoarjo_2.js"></script>
+        <script>
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[-8.122118770202906,112.34170135234301],[-7.0627367242176735,113.15958698734168]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // modify popup if contains media
+        function addClassToPopupIfMedia(content, popup) {
+            var tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            var imgTd = tempDiv.querySelector('td img');
+            if (imgTd) {
+                var src = imgTd.getAttribute('src');
+                if (/\.(jpg|jpeg|png|gif|bmp|webp|avif)$/i.test(src)) {
+                    popup._contentNode.classList.add('media');
+                    setTimeout(function() {
+                        popup.update();
+                    }, 10);
+                } else if (/\.(mp3|wav|ogg|aac)$/i.test(src)) {
+                    var audio = document.createElement('audio');
+                    audio.controls = true;
+                    audio.src = src;
+                    imgTd.parentNode.replaceChild(audio, imgTd);
+                    popup._contentNode.classList.add('media');
+                    setTimeout(function() {
+                        popup.setContent(tempDiv.innerHTML);
+                        popup.update();
+                    }, 10);
+                } else if (/\.(mp4|webm|ogg|mov)$/i.test(src)) {
+                    var video = document.createElement('video');
+                    video.controls = true;
+                    video.src = src;
+                    video.style.width = "400px";
+                    video.style.height = "300px";
+                    video.style.maxHeight = "60vh";
+                    video.style.maxWidth = "60vw";
+                    imgTd.parentNode.replaceChild(video, imgTd);
+                    popup._contentNode.classList.add('media');
+                    // Aggiorna il popup quando il video carica i metadati
+                    video.addEventListener('loadedmetadata', function() {
+                        popup.update();
+                    });
+                    setTimeout(function() {
+                        popup.setContent(tempDiv.innerHTML);
+                        popup.update();
+                    }, 10);
+                } else {
+                    popup._contentNode.classList.remove('media');
+                }
+            } else {
+                popup._contentNode.classList.remove('media');
+            }
+        }
+        var title = new L.Control({'position':'topright'});
+        title.onAdd = function (map) {
+            this._div = L.DomUtil.create('div', 'info');
+            this.update();
+            return this._div;
+        };
+        title.update = function () {
+            this._div.innerHTML = '<h2>WebGIS Kesesuaian Lahan Permukiman Kabupaten Sidoarjo
+</h2>';
+        };
+        title.addTo(map);
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        map.createPane('pane_OSMStandard_0');
+        map.getPane('pane_OSMStandard_0').style.zIndex = 400;
+        var layer_OSMStandard_0 = L.tileLayer('http://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            pane: 'pane_OSMStandard_0',
+            opacity: 1.0,
+            attribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors, CC-BY-SA</a>',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_OSMStandard_0;
+        map.addLayer(layer_OSMStandard_0);
+        function pop_Jalan_Sidoarjo_1(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(String(feature.properties['OBJECTID']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NAMOBJ'] !== null ? autolinker.link(String(feature.properties['NAMOBJ']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FCODE'] !== null ? autolinker.link(String(feature.properties['FCODE']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['REMARK'] !== null ? autolinker.link(String(feature.properties['REMARK']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['METADATA'] !== null ? autolinker.link(String(feature.properties['METADATA']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SRS_ID'] !== null ? autolinker.link(String(feature.properties['SRS_ID']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ARHRJL'] !== null ? autolinker.link(String(feature.properties['ARHRJL']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['AUTRJL'] !== null ? autolinker.link(String(feature.properties['AUTRJL']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FGSRJL'] !== null ? autolinker.link(String(feature.properties['FGSRJL']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JARRJL'] !== null ? autolinker.link(String(feature.properties['JARRJL']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JPARJL'] !== null ? autolinker.link(String(feature.properties['JPARJL']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['KLLRJL'] !== null ? autolinker.link(String(feature.properties['KLLRJL']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['KONRJL'] !== null ? autolinker.link(String(feature.properties['KONRJL']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['KPMSTR'] !== null ? autolinker.link(String(feature.properties['KPMSTR']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['LKONOF'] !== null ? autolinker.link(String(feature.properties['LKONOF']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['LKSBSP'] !== null ? autolinker.link(String(feature.properties['LKSBSP']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['LKSRTA'] !== null ? autolinker.link(String(feature.properties['LKSRTA']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['LLHRRT'] !== null ? autolinker.link(String(feature.properties['LLHRRT']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['LOCRJL'] !== null ? autolinker.link(String(feature.properties['LOCRJL']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['LBRBHJ'] !== null ? autolinker.link(String(feature.properties['LBRBHJ']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['LBRJLN'] !== null ? autolinker.link(String(feature.properties['LBRJLN']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['MATRJL'] !== null ? autolinker.link(String(feature.properties['MATRJL']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['MEDRJL'] !== null ? autolinker.link(String(feature.properties['MEDRJL']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SPCRJL'] !== null ? autolinker.link(String(feature.properties['SPCRJL']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['STARJL'] !== null ? autolinker.link(String(feature.properties['STARJL']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['TOLRJL'] !== null ? autolinker.link(String(feature.properties['TOLRJL']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['UTKRJL'] !== null ? autolinker.link(String(feature.properties['UTKRJL']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['VLCPRT'] !== null ? autolinker.link(String(feature.properties['VLCPRT']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WLYRJL'] !== null ? autolinker.link(String(feature.properties['WLYRJL']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['TGL_SK'] !== null ? autolinker.link(String(feature.properties['TGL_SK']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JLNLYG'] !== null ? autolinker.link(String(feature.properties['JLNLYG']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['KLSRJL'] !== null ? autolinker.link(String(feature.properties['KLSRJL']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SHAPE_Leng'] !== null ? autolinker.link(String(feature.properties['SHAPE_Leng']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Jalan_Sidoarjo_1_0() {
+            return {
+                pane: 'pane_Jalan_Sidoarjo_1',
+                opacity: 1,
+                color: 'rgba(196,60,57,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Jalan_Sidoarjo_1');
+        map.getPane('pane_Jalan_Sidoarjo_1').style.zIndex = 401;
+        map.getPane('pane_Jalan_Sidoarjo_1').style['mix-blend-mode'] = 'normal';
+        var layer_Jalan_Sidoarjo_1 = new L.geoJson(json_Jalan_Sidoarjo_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Jalan_Sidoarjo_1',
+            layerName: 'layer_Jalan_Sidoarjo_1',
+            pane: 'pane_Jalan_Sidoarjo_1',
+            onEachFeature: pop_Jalan_Sidoarjo_1,
+            style: style_Jalan_Sidoarjo_1_0,
+        });
+        bounds_group.addLayer(layer_Jalan_Sidoarjo_1);
+        map.addLayer(layer_Jalan_Sidoarjo_1);
+        function pop_Sidoarjo_2(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(String(feature.properties['OBJECTID']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NAMOBJ'] !== null ? autolinker.link(String(feature.properties['NAMOBJ']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['FCODE'] !== null ? autolinker.link(String(feature.properties['FCODE']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['REMARK'] !== null ? autolinker.link(String(feature.properties['REMARK']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['METADATA'] !== null ? autolinker.link(String(feature.properties['METADATA']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SRS_ID'] !== null ? autolinker.link(String(feature.properties['SRS_ID']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['KDBBPS'] !== null ? autolinker.link(String(feature.properties['KDBBPS']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['KDCBPS'] !== null ? autolinker.link(String(feature.properties['KDCBPS']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['KDCPUM'] !== null ? autolinker.link(String(feature.properties['KDCPUM']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['KDEBPS'] !== null ? autolinker.link(String(feature.properties['KDEBPS']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['KDEPUM'] !== null ? autolinker.link(String(feature.properties['KDEPUM']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['KDPBPS'] !== null ? autolinker.link(String(feature.properties['KDPBPS']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['KDPKAB'] !== null ? autolinker.link(String(feature.properties['KDPKAB']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['KDPPUM'] !== null ? autolinker.link(String(feature.properties['KDPPUM']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['LUASWH'] !== null ? autolinker.link(String(feature.properties['LUASWH']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['TIPADM'] !== null ? autolinker.link(String(feature.properties['TIPADM']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WADMKC'] !== null ? autolinker.link(String(feature.properties['WADMKC']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WADMKD'] !== null ? autolinker.link(String(feature.properties['WADMKD']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WADMKK'] !== null ? autolinker.link(String(feature.properties['WADMKK']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WADMPR'] !== null ? autolinker.link(String(feature.properties['WADMPR']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WIADKC'] !== null ? autolinker.link(String(feature.properties['WIADKC']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WIADKK'] !== null ? autolinker.link(String(feature.properties['WIADKK']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WIADPR'] !== null ? autolinker.link(String(feature.properties['WIADPR']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WIADKD'] !== null ? autolinker.link(String(feature.properties['WIADKD']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SHAPE_Leng'] !== null ? autolinker.link(String(feature.properties['SHAPE_Leng']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SHAPE_Area'] !== null ? autolinker.link(String(feature.properties['SHAPE_Area']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Sidoarjo_2_0() {
+            return {
+                pane: 'pane_Sidoarjo_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(114,155,111,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Sidoarjo_2');
+        map.getPane('pane_Sidoarjo_2').style.zIndex = 402;
+        map.getPane('pane_Sidoarjo_2').style['mix-blend-mode'] = 'normal';
+        var layer_Sidoarjo_2 = new L.geoJson(json_Sidoarjo_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Sidoarjo_2',
+            layerName: 'layer_Sidoarjo_2',
+            pane: 'pane_Sidoarjo_2',
+            onEachFeature: pop_Sidoarjo_2,
+            style: style_Sidoarjo_2_0,
+        });
+        bounds_group.addLayer(layer_Sidoarjo_2);
+        map.addLayer(layer_Sidoarjo_2);
+        map.createPane('pane_DEM_Sidoarjo_3');
+        map.getPane('pane_DEM_Sidoarjo_3').style.zIndex = 403;
+        var img_DEM_Sidoarjo_3 = 'data/DEM_Sidoarjo_3.png';
+        var img_bounds_DEM_Sidoarjo_3 = [[-7.577482748274828,112.4567206720672],[-7.33018301830183,112.87781278127812]];
+        var layer_DEM_Sidoarjo_3 = new L.imageOverlay(img_DEM_Sidoarjo_3,
+                                              img_bounds_DEM_Sidoarjo_3,
+                                              {pane: 'pane_DEM_Sidoarjo_3'});
+        bounds_group.addLayer(layer_DEM_Sidoarjo_3);
+        map.addLayer(layer_DEM_Sidoarjo_3);
+        map.createPane('pane_Sungai_Template_4');
+        map.getPane('pane_Sungai_Template_4').style.zIndex = 404;
+        var img_Sungai_Template_4 = 'data/Sungai_Template_4.png';
+        var img_bounds_Sungai_Template_4 = [[-7.577482748274828,112.4567206720672],[-7.33018301830183,112.87781278127812]];
+        var layer_Sungai_Template_4 = new L.imageOverlay(img_Sungai_Template_4,
+                                              img_bounds_Sungai_Template_4,
+                                              {pane: 'pane_Sungai_Template_4'});
+        bounds_group.addLayer(layer_Sungai_Template_4);
+        map.addLayer(layer_Sungai_Template_4);
+        map.createPane('pane_Skor_Slope_5');
+        map.getPane('pane_Skor_Slope_5').style.zIndex = 405;
+        var img_Skor_Slope_5 = 'data/Skor_Slope_5.png';
+        var img_bounds_Skor_Slope_5 = [[-7.577482748274828,112.4567206720672],[-7.33018301830183,112.87781278127812]];
+        var layer_Skor_Slope_5 = new L.imageOverlay(img_Skor_Slope_5,
+                                              img_bounds_Skor_Slope_5,
+                                              {pane: 'pane_Skor_Slope_5'});
+        bounds_group.addLayer(layer_Skor_Slope_5);
+        map.addLayer(layer_Skor_Slope_5);
+        map.createPane('pane_Skor_Road_6');
+        map.getPane('pane_Skor_Road_6').style.zIndex = 406;
+        var img_Skor_Road_6 = 'data/Skor_Road_6.png';
+        var img_bounds_Skor_Road_6 = [[-7.7227941405000005,112.535865886],[-7.060102878,113.14927722099999]];
+        var layer_Skor_Road_6 = new L.imageOverlay(img_Skor_Road_6,
+                                              img_bounds_Skor_Road_6,
+                                              {pane: 'pane_Skor_Road_6'});
+        bounds_group.addLayer(layer_Skor_Road_6);
+        map.addLayer(layer_Skor_Road_6);
+        map.createPane('pane_DistanceToRiver_7');
+        map.getPane('pane_DistanceToRiver_7').style.zIndex = 407;
+        var img_DistanceToRiver_7 = 'data/DistanceToRiver_7.png';
+        var img_bounds_DistanceToRiver_7 = [[-7.577482748274828,112.4567206720672],[-7.33018301830183,112.87781278127812]];
+        var layer_DistanceToRiver_7 = new L.imageOverlay(img_DistanceToRiver_7,
+                                              img_bounds_DistanceToRiver_7,
+                                              {pane: 'pane_DistanceToRiver_7'});
+        bounds_group.addLayer(layer_DistanceToRiver_7);
+        map.addLayer(layer_DistanceToRiver_7);
+        map.createPane('pane_Skor_River_8');
+        map.getPane('pane_Skor_River_8').style.zIndex = 408;
+        var img_Skor_River_8 = 'data/Skor_River_8.png';
+        var img_bounds_Skor_River_8 = [[-7.577482748274828,112.4567206720672],[-7.33018301830183,112.87781278127812]];
+        var layer_Skor_River_8 = new L.imageOverlay(img_Skor_River_8,
+                                              img_bounds_Skor_River_8,
+                                              {pane: 'pane_Skor_River_8'});
+        bounds_group.addLayer(layer_Skor_River_8);
+        map.addLayer(layer_Skor_River_8);
+        map.createPane('pane_Kesesuaian_Permukiman_9');
+        map.getPane('pane_Kesesuaian_Permukiman_9').style.zIndex = 409;
+        var img_Kesesuaian_Permukiman_9 = 'data/Kesesuaian_Permukiman_9.png';
+        var img_bounds_Kesesuaian_Permukiman_9 = [[-7.57748,112.45672],[-7.33018,112.87781]];
+        var layer_Kesesuaian_Permukiman_9 = new L.imageOverlay(img_Kesesuaian_Permukiman_9,
+                                              img_bounds_Kesesuaian_Permukiman_9,
+                                              {pane: 'pane_Kesesuaian_Permukiman_9'});
+        bounds_group.addLayer(layer_Kesesuaian_Permukiman_9);
+        map.addLayer(layer_Kesesuaian_Permukiman_9);
+        map.createPane('pane_Kelas_Kesesuaian_10');
+        map.getPane('pane_Kelas_Kesesuaian_10').style.zIndex = 410;
+        var img_Kelas_Kesesuaian_10 = 'data/Kelas_Kesesuaian_10.png';
+        var img_bounds_Kelas_Kesesuaian_10 = [[-7.57748,112.45672],[-7.33018,112.87781]];
+        var layer_Kelas_Kesesuaian_10 = new L.imageOverlay(img_Kelas_Kesesuaian_10,
+                                              img_bounds_Kelas_Kesesuaian_10,
+                                              {pane: 'pane_Kelas_Kesesuaian_10'});
+        bounds_group.addLayer(layer_Kelas_Kesesuaian_10);
+        map.addLayer(layer_Kelas_Kesesuaian_10);
+        map.createPane('pane_DistanceToRoad_Sidoarjo_11');
+        map.getPane('pane_DistanceToRoad_Sidoarjo_11').style.zIndex = 411;
+        var img_DistanceToRoad_Sidoarjo_11 = 'data/DistanceToRoad_Sidoarjo_11.png';
+        var img_bounds_DistanceToRoad_Sidoarjo_11 = [[-7.7227941405000005,112.535865886],[-7.060102878,113.14927722099999]];
+        var layer_DistanceToRoad_Sidoarjo_11 = new L.imageOverlay(img_DistanceToRoad_Sidoarjo_11,
+                                              img_bounds_DistanceToRoad_Sidoarjo_11,
+                                              {pane: 'pane_DistanceToRoad_Sidoarjo_11'});
+        bounds_group.addLayer(layer_DistanceToRoad_Sidoarjo_11);
+        map.addLayer(layer_DistanceToRoad_Sidoarjo_11);
+        map.createPane('pane_Jalan_Raster_Sidoarjo_12');
+        map.getPane('pane_Jalan_Raster_Sidoarjo_12').style.zIndex = 412;
+        var img_Jalan_Raster_Sidoarjo_12 = 'data/Jalan_Raster_Sidoarjo_12.png';
+        var img_bounds_Jalan_Raster_Sidoarjo_12 = [[-8.3219791965,112.097801464],[-6.380560074,113.733565024]];
+        var layer_Jalan_Raster_Sidoarjo_12 = new L.imageOverlay(img_Jalan_Raster_Sidoarjo_12,
+                                              img_bounds_Jalan_Raster_Sidoarjo_12,
+                                              {pane: 'pane_Jalan_Raster_Sidoarjo_12'});
+        bounds_group.addLayer(layer_Jalan_Raster_Sidoarjo_12);
+        map.addLayer(layer_Jalan_Raster_Sidoarjo_12);
+        map.createPane('pane_Slope_Sidoarjo_13');
+        map.getPane('pane_Slope_Sidoarjo_13').style.zIndex = 413;
+        var img_Slope_Sidoarjo_13 = 'data/Slope_Sidoarjo_13.png';
+        var img_bounds_Slope_Sidoarjo_13 = [[-7.577482748274828,112.4567206720672],[-7.33018301830183,112.87781278127812]];
+        var layer_Slope_Sidoarjo_13 = new L.imageOverlay(img_Slope_Sidoarjo_13,
+                                              img_bounds_Slope_Sidoarjo_13,
+                                              {pane: 'pane_Slope_Sidoarjo_13'});
+        bounds_group.addLayer(layer_Slope_Sidoarjo_13);
+        map.addLayer(layer_Slope_Sidoarjo_13);
+        map.createPane('pane_Skor_DEM_14');
+        map.getPane('pane_Skor_DEM_14').style.zIndex = 414;
+        var img_Skor_DEM_14 = 'data/Skor_DEM_14.png';
+        var img_bounds_Skor_DEM_14 = [[-7.75,112.25],[-7.25,113.0]];
+        var layer_Skor_DEM_14 = new L.imageOverlay(img_Skor_DEM_14,
+                                              img_bounds_Skor_DEM_14,
+                                              {pane: 'pane_Skor_DEM_14'});
+        bounds_group.addLayer(layer_Skor_DEM_14);
+        map.addLayer(layer_Skor_DEM_14);
+        map.createPane('pane_Skor_Banjir_15');
+        map.getPane('pane_Skor_Banjir_15').style.zIndex = 415;
+        var img_Skor_Banjir_15 = 'data/Skor_Banjir_15.png';
+        var img_bounds_Skor_Banjir_15 = [[-7.577482748274828,112.4567206720672],[-7.33018301830183,112.87781278127812]];
+        var layer_Skor_Banjir_15 = new L.imageOverlay(img_Skor_Banjir_15,
+                                              img_bounds_Skor_Banjir_15,
+                                              {pane: 'pane_Skor_Banjir_15'});
+        bounds_group.addLayer(layer_Skor_Banjir_15);
+        map.addLayer(layer_Skor_Banjir_15);
+        var overlaysTree = [
+            {label: "Skor_Banjir", layer: layer_Skor_Banjir_15},
+            {label: "Skor_DEM", layer: layer_Skor_DEM_14},
+            {label: "Slope_Sidoarjo", layer: layer_Slope_Sidoarjo_13},
+            {label: "Jalan_Raster_Sidoarjo", layer: layer_Jalan_Raster_Sidoarjo_12},
+            {label: "DistanceToRoad_Sidoarjo", layer: layer_DistanceToRoad_Sidoarjo_11},
+            {label: "Kelas_Kesesuaian", layer: layer_Kelas_Kesesuaian_10},
+            {label: "Kesesuaian_Permukiman", layer: layer_Kesesuaian_Permukiman_9},
+            {label: "Skor_River", layer: layer_Skor_River_8},
+            {label: "DistanceToRiver", layer: layer_DistanceToRiver_7},
+            {label: "Skor_Road", layer: layer_Skor_Road_6},
+            {label: "Skor_Slope", layer: layer_Skor_Slope_5},
+            {label: "Sungai_Template", layer: layer_Sungai_Template_4},
+            {label: "DEM_Sidoarjo", layer: layer_DEM_Sidoarjo_3},
+            {label: '<img src="legend/Sidoarjo_2.png" /> Sidoarjo', layer: layer_Sidoarjo_2},
+            {label: '<img src="legend/Jalan_Sidoarjo_1.png" /> Jalan_Sidoarjo', layer: layer_Jalan_Sidoarjo_1},
+            {label: "OSM Standard", layer: layer_OSMStandard_0},]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: false, 
+        });
+        lay.addTo(map);
+		document.addEventListener("DOMContentLoaded", function() {
+            // set new Layers List height which considers toggle icon
+            function newLayersListHeight() {
+                var layerScrollbarElement = document.querySelector('.leaflet-control-layers-scrollbar');
+                if (layerScrollbarElement) {
+                    var layersListElement = document.querySelector('.leaflet-control-layers-list');
+                    var originalHeight = layersListElement.style.height 
+                        || window.getComputedStyle(layersListElement).height;
+                    var newHeight = parseFloat(originalHeight) - 50;
+                    layersListElement.style.height = newHeight + 'px';
+                }
+            }
+            var isLayersListExpanded = true;
+            var controlLayersElement = document.querySelector('.leaflet-control-layers');
+            var toggleLayerControl = document.querySelector('.leaflet-control-layers-toggle');
+            // toggle Collapsed/Expanded and apply new Layers List height
+            toggleLayerControl.addEventListener('click', function() {
+                if (isLayersListExpanded) {
+                    controlLayersElement.classList.remove('leaflet-control-layers-expanded');
+                } else {
+                    controlLayersElement.classList.add('leaflet-control-layers-expanded');
+                }
+                isLayersListExpanded = !isLayersListExpanded;
+                newLayersListHeight()
+            });	
+			// apply new Layers List height if toggle layerstree
+			if (controlLayersElement) {
+				controlLayersElement.addEventListener('click', function(event) {
+					var toggleLayerHeaderPointer = event.target.closest('.leaflet-layerstree-header-pointer span');
+					if (toggleLayerHeaderPointer) {
+						newLayersListHeight();
+					}
+				});
+			}
+            // Collapsed/Expanded at Start to apply new height
+            setTimeout(function() {
+                toggleLayerControl.click();
+            }, 10);
+            setTimeout(function() {
+                toggleLayerControl.click();
+            }, 10);
+            // Collapsed touch/small screen
+            var isSmallScreen = window.innerWidth < 650;
+            if (isSmallScreen) {
+                setTimeout(function() {
+                    controlLayersElement.classList.remove('leaflet-control-layers-expanded');
+                    isLayersListExpanded = !isLayersListExpanded;
+                }, 500);
+            }  
+        });       
+        setBounds();
+        L.ImageOverlay.include({
+            getBounds: function () {
+                return this._bounds;
+            }
+        });
+        </script>        
+    </body>
+</html>
