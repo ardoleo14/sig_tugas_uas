@@ -1,53 +1,47 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
 
-<link rel="stylesheet" href="css/leaflet.css">
-<link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
-<link rel="stylesheet" href="css/qgis2web.css">
-<link rel="stylesheet" href="css/fontawesome-all.min.css">
-<link rel="stylesheet" href="css/leaflet.photon.css">
+    <link rel="stylesheet" href="css/leaflet.css">
+    <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+    <link rel="stylesheet" href="css/qgis2web.css">
+    <link rel="stylesheet" href="css/fontawesome-all.min.css">
+    <link rel="stylesheet" href="css/leaflet.photon.css">
 
-<style>
-html, body, #map {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-}
-.legend {
-    background: white;
-    padding: 8px;
-    line-height: 18px;
-    color: #333;
-}
-.legend i {
-    width: 18px;
-    height: 18px;
-    float: left;
-    margin-right: 8px;
-    opacity: 0.8;
-}
-</style>
+    <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
 
-<title>WebGIS Kesesuaian Lahan Permukiman Kabupaten Sidoarjo</title>
+    <title>WebGIS Kesesuaian Lahan Permukiman Kabupaten Sidoarjo</title>
 </head>
 
 <body>
 <div id="map"></div>
 
 <!-- LIBRARIES -->
+<script src="js/qgis2web_expressions.js"></script>
 <script src="js/leaflet.js"></script>
 <script src="js/L.Control.Layers.Tree.min.js"></script>
+<script src="js/leaflet.rotatedMarker.js"></script>
+<script src="js/leaflet.pattern.js"></script>
 <script src="js/leaflet-hash.js"></script>
+<script src="js/Autolinker.min.js"></script>
+<script src="js/rbush.min.js"></script>
+<script src="js/labelgun.min.js"></script>
+<script src="js/labels.js"></script>
+<script src="js/leaflet.photon.js"></script>
 
 <!-- DATA -->
-<script src="data/Kesesuaian_Permukiman_Sidoarjo.js"></script>
 <script src="data/Pendidikan_Sidoarjo_1.js"></script>
 <script src="data/Permukiman_Sidoarjo_2.js"></script>
 <script src="data/Sungai_Kecil_Sidoarjo_3.js"></script>
@@ -58,105 +52,108 @@ html, body, #map {
 <script src="data/Sungai_Besar_Sidoarjo_8.js"></script>
 
 <script>
-/* ================= MAP ================= */
-var map = L.map('map',{zoomControl:false})
-.fitBounds([
+var map = L.map('map', {
+    zoomControl:false,
+    maxZoom:28,
+    minZoom:1
+}).fitBounds([
     [-7.620962942180029,112.5246924130729],
     [-7.165201187346662,112.96725200120454]
 ]);
 
-new L.Hash(map);
-L.control.zoom({position:'topleft'}).addTo(map);
+var hash = new L.Hash(map);
 
-/* ================= BASEMAP ================= */
-map.createPane('paneOSM');
-map.getPane('paneOSM').style.zIndex = 100;
+/* ================= BASEMAP (FIX HTTPS) ================= */
+map.createPane('pane_OSMStandard_0');
+map.getPane('pane_OSMStandard_0').style.zIndex = 400;
 
-var osm = L.tileLayer(
-'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-{pane:'paneOSM', maxZoom:28}
-).addTo(map);
+var layer_OSMStandard_0 = L.tileLayer(
+    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+        pane: 'pane_OSMStandard_0',
+        opacity: 1.0,
+        attribution: '© OpenStreetMap contributors',
+        minZoom: 1,
+        maxZoom: 28
+    }
+);
+map.addLayer(layer_OSMStandard_0);
 
 /* ================= TITLE ================= */
 var title = L.control({position:'topright'});
-title.onAdd = function(){
-    var div = L.DomUtil.create('div','info');
-    div.innerHTML = '<h3>WebGIS Kesesuaian Lahan Permukiman<br>Kabupaten Sidoarjo</h3>';
+title.onAdd = function () {
+    var div = L.DomUtil.create('div', 'info');
+    div.innerHTML = '<h2>WebGIS Kesesuaian Lahan Permukiman Kabupaten Sidoarjo</h2>';
     return div;
 };
 title.addTo(map);
 
-/* ================= HELPER ================= */
-function addLayer(json,pane,style,popup){
+L.control.zoom({ position: 'topleft' }).addTo(map);
+
+/* ================= LAYERS ================= */
+var bounds_group = new L.featureGroup([]);
+
+function addGeoJsonLayer(json, pane, styleFunc, popupFunc) {
     map.createPane(pane);
     map.getPane(pane).style.zIndex = 401;
-    return L.geoJson(json,{
-        pane:pane,
-        style:style,
-        onEachFeature:popup,
-        interactive:true
-    }).addTo(map);
+    var layer = new L.geoJson(json, {
+        pane: pane,
+        style: styleFunc,
+        onEachFeature: popupFunc,
+        interactive: true
+    });
+    bounds_group.addLayer(layer);
+    map.addLayer(layer);
+    return layer;
 }
 
-function popupAll(feature,layer){
-    var html='<table>';
-    for(var k in feature.properties){
-        html+='<tr><td>'+k+'</td><td>'+feature.properties[k]+'</td></tr>';
+/* ========== CONTOH POPUP SINGKAT (AMAN) ========== */
+function simplePopup(feature, layer) {
+    if (feature.properties) {
+        var html = '<table>';
+        for (var key in feature.properties) {
+            html += '<tr><td>' + key + '</td><td>' + feature.properties[key] + '</td></tr>';
+        }
+        html += '</table>';
+        layer.bindPopup(html);
     }
-    html+='</table>';
-    layer.bindPopup(html);
 }
 
 /* ================= STYLE ================= */
-function styleKesesuaian(feature){
-    var k = feature.properties.KELAS;
-    var c='#ccc';
-    if(k==='Sangat Sesuai') c='#1a9641';
-    else if(k==='Sesuai') c='#a6d96a';
-    else if(k==='Kurang Sesuai') c='#fdae61';
-    else if(k==='Tidak Sesuai') c='#d7191c';
-    return {color:'#333',weight:1,fillColor:c,fillOpacity:0.8};
+function styleFill(color) {
+    return {
+        color: '#333',
+        weight: 1,
+        fillColor: color,
+        fillOpacity: 0.8
+    };
 }
-function fill(c){return{color:'#333',weight:1,fillColor:c,fillOpacity:0.8};}
 
-/* ================= LAYERS ================= */
-var layerKesesuaian = addLayer(json_Kesesuaian_Permukiman_Sidoarjo,'paneKesesuaian',styleKesesuaian,popupAll);
-var layerPendidikan = addLayer(json_Pendidikan_Sidoarjo_1,'panePendidikan',()=>fill('#c43c39'),popupAll);
-var layerPermukiman = addLayer(json_Permukiman_Sidoarjo_2,'panePermukiman',()=>fill('#a47158'),popupAll);
-var layerSungaiKecil = addLayer(json_Sungai_Kecil_Sidoarjo_3,'paneSK',()=>({color:'#85b66f'}),popupAll);
-var layerRawa = addLayer(json_Rawa_Sidoarjo_4,'paneRawa',()=>fill('#ff9e17'),popupAll);
-var layerDanau = addLayer(json_Danau_Sidoarjo_5,'paneDanau',()=>fill('#e77148'),popupAll);
-var layerPantai = addLayer(json_Garis_Pantai_Sidoarjo_6,'panePantai',()=>({color:'#becf50'}),popupAll);
-var layerWaduk = addLayer(json_WADUK_Sidoarjo_7,'paneWaduk',()=>fill('#729b6f'),popupAll);
-var layerSungaiBesar = addLayer(json_Sungai_Besar_Sidoarjo_8,'paneSB',()=>({color:'#e5b636'}),popupAll);
-
-/* ================= LEGEND ================= */
-var legend=L.control({position:'bottomright'});
-legend.onAdd=function(){
-    var d=L.DomUtil.create('div','legend');
-    d.innerHTML=
-    '<b>Kesesuaian Lahan</b><br>'+
-    '<i style="background:#1a9641"></i>Sangat Sesuai<br>'+
-    '<i style="background:#a6d96a"></i>Sesuai<br>'+
-    '<i style="background:#fdae61"></i>Kurang Sesuai<br>'+
-    '<i style="background:#d7191c"></i>Tidak Sesuai';
-    return d;
-};
-legend.addTo(map);
+/* ================= ADD LAYERS ================= */
+var layer1 = addGeoJsonLayer(json_Pendidikan_Sidoarjo_1,'pane1',()=>styleFill('#c43c39'),simplePopup);
+var layer2 = addGeoJsonLayer(json_Permukiman_Sidoarjo_2,'pane2',()=>styleFill('#a47158'),simplePopup);
+var layer3 = addGeoJsonLayer(json_Sungai_Kecil_Sidoarjo_3,'pane3',()=>({color:'#85b66f'}),simplePopup);
+var layer4 = addGeoJsonLayer(json_Rawa_Sidoarjo_4,'pane4',()=>styleFill('#ff9e17'),simplePopup);
+var layer5 = addGeoJsonLayer(json_Danau_Sidoarjo_5,'pane5',()=>styleFill('#e77148'),simplePopup);
+var layer6 = addGeoJsonLayer(json_Garis_Pantai_Sidoarjo_6,'pane6',()=>({color:'#becf50'}),simplePopup);
+var layer7 = addGeoJsonLayer(json_WADUK_Sidoarjo_7,'pane7',()=>styleFill('#729b6f'),simplePopup);
+var layer8 = addGeoJsonLayer(json_Sungai_Besar_Sidoarjo_8,'pane8',()=>styleFill('#e5b636'),simplePopup);
 
 /* ================= LAYER CONTROL ================= */
-L.control.layers.tree(null,[
-    {label:'Kesesuaian Lahan Permukiman',layer:layerKesesuaian},
-    {label:'Sungai Besar',layer:layerSungaiBesar},
-    {label:'Waduk',layer:layerWaduk},
-    {label:'Garis Pantai',layer:layerPantai},
-    {label:'Danau',layer:layerDanau},
-    {label:'Rawa',layer:layerRawa},
-    {label:'Sungai Kecil',layer:layerSungaiKecil},
-    {label:'Permukiman',layer:layerPermukiman},
-    {label:'Pendidikan',layer:layerPendidikan},
-    {label:'OSM',layer:osm}
-],{collapsed:false}).addTo(map);
+var overlaysTree = [
+    {label: "Sungai Besar", layer: layer8},
+    {label: "Waduk", layer: layer7},
+    {label: "Garis Pantai", layer: layer6},
+    {label: "Danau", layer: layer5},
+    {label: "Rawa", layer: layer4},
+    {label: "Sungai Kecil", layer: layer3},
+    {label: "Permukiman", layer: layer2},
+    {label: "Pendidikan", layer: layer1},
+    {label: "OSM Standard", layer: layer_OSMStandard_0}
+];
+
+L.control.layers.tree(null, overlaysTree, {collapsed:false}).addTo(map);
 </script>
+
 </body>
 </html>
